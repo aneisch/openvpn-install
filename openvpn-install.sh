@@ -315,6 +315,7 @@ server 10.8.0.0 255.255.255.0" > /etc/openvpn/server/server.conf
 		;;
 	esac
 	echo "keepalive 10 120
+push 'route 192.168.10.0 255.255.255.0'
 cipher AES-256-CBC
 user nobody
 group $group_name
@@ -375,6 +376,7 @@ ExecStart=$iptables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCE
 ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
 ExecStop=$iptables_path -D INPUT -p $protocol --dport $port -j ACCEPT
 ExecStop=$iptables_path -D FORWARD -s 10.8.0.0/24 -j ACCEPT
+ExecStop=$iptables_path -t nat -I POSTROUTING 1 -s 10.8.0.0/24 -j MASQUERADE
 ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" > /etc/systemd/system/openvpn-iptables.service
 		if [[ -n "$ip6" ]]; then
 			echo "ExecStart=$ip6tables_path -t nat -A POSTROUTING -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to $ip6
@@ -422,6 +424,7 @@ block-outside-dns
 verb 3" > /etc/openvpn/server/client-common.txt
 	# Enable and start the OpenVPN service
 	systemctl enable --now openvpn-server@server.service
+	systemctl restart openvpn-iptables.service
 	# Generates the custom client.ovpn
 	new_client
 	echo
